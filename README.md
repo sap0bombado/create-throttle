@@ -28,5 +28,5 @@ end)
 ## Install
 Add as a Wally dependency:
 ```toml
-createThrottle = "sap0bombado/create-throttle@0.1.0"
+createThrottle = "sap0bombado/create-throttle@0.2.0"
 ```
