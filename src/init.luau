@@ -26,69 +26,41 @@
 type ConnectionLike = RBXScriptConnection & { Disconnect: (any) -> () } & { disconnect: (any) -> () }
 type EventLike = RBXScriptSignal & { Connect: (any, any) -> ConnectionLike } & { connect: (any, any) -> ConnectionLike }
 
-export type Throttle = (() -> boolean) & ((interval: number) -> ()) & (("destroy") -> ())
+export type Throttle = (() -> boolean) & ((interval: number) -> ())
 
-local function safeDisconnect(traceback: string, connection: ConnectionLike)
-	local method = connection.Disconnect ~= nil and "Disconnect" or "disconnect"
-
-	if connection[method] ~= nil and typeof(connection[method]) == "function" then
-		connection[method :: any](connection)
-		return
-	end
-
-	error(`Expected a connection with a Disconnect or disconnect method. \nThrottle created at:\n{traceback}`)
-end
-
-local function safeConnect(traceback: string, event: EventLike, callback: any): ConnectionLike
-	local method = event.Connect ~= nil and "Connect" or "connect"
-
-	if event[method] ~= nil and typeof(event[method]) == "function" then
-		return event[method :: any](event, callback)
-	end
-
-	error(`Expected an event with a Connect or connect method. \nThrottle created at:\n{traceback}`)
-end
-
-local function createThrottle(interval: number, updateEventMaybe: EventLike?)
+local function createThrottle(interval: number, timeFunctionMaybe: (() -> number)?)
 	local traceback = debug.traceback(nil, 2)
-	local updateEvent = updateEventMaybe or game:GetService("RunService").Heartbeat
+	local timeFunction = timeFunctionMaybe or os.clock
+	local lastUsedTime = 0
 
-	local canUseThrottle = true
-	local accumulatedTime = 0
-
-	local updateConnection = safeConnect(traceback, updateEvent, function(deltaTime: number)
-		if canUseThrottle == true then
-			return
-		end
-
-		accumulatedTime += deltaTime
-
-		if accumulatedTime >= interval then
-			accumulatedTime = 0
-			canUseThrottle = true
-		end
-	end)
-
-	return function(arg: (number | "destroy")?)
+	return function(arg: number?)
 		if arg == nil then
-			local canUse = canUseThrottle
+			local now = timeFunction()
 
-			if canUse == true then
-				canUseThrottle = false
+			if now < lastUsedTime then
+				error(
+					`Time function returned a value smaller than the last used time. This can cause the throttle to never be usable again. \nThrottle created at:\n{traceback}`
+				)
+			end
+
+			local canUse = now - lastUsedTime >= interval
+
+			if canUse then
+				lastUsedTime = now
 			end
 
 			return canUse :: any
 		end
 
-		if arg == "destroy" then
-			safeDisconnect(traceback, updateConnection)
-			canUseThrottle = false
-			return
-		end
+		assert(
+			typeof(arg) == "number",
+			`Expected a number or 'destroy' as an argument. \nThrottle created at:\n{traceback}`
+		)
 
-		assert(typeof(arg) == "number", "Expected a number or 'destroy' as an argument.")
 		interval = arg
+
+		return
 	end
 end
 
-return createThrottle :: (interval: number, updateEventMaybe: EventLike?) -> Throttle
+return createThrottle :: (interval: number) -> Throttle

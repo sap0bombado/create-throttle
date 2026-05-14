@@ -4,7 +4,7 @@
 local createThrottle = require("@pkg/createThrottle")
 
 -- Create a throttle with a 2-second interval
-local throttle = createThrottle(2)
+local throttle = createThrottle(2, os.clock)
 
 -- Example event loop
 while true do
@@ -19,17 +19,9 @@ while true do
 end
 
 -- Changing interval dynamically
-task.spawn(function()
-	task.wait(10)
+task.delay(3, function()
 	throttle(0.5) -- make it faster after 10 seconds
 	print("Throttle interval changed to 0.5s")
-end)
-
--- Cleanup example
-task.spawn(function()
-	task.wait(30)
-	throttle("destroy")
-	print("Throttle destroyed")
 end)
 ```
 
