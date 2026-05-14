@@ -1,0 +1,11 @@
+[package]
+authors = ["sapobombado"]
+exclude = ["**"]
+include = ["src", "src/**", "wally.toml", "wally.lock", "default.project.json", "LICENSE", "README.md"]
+license = "MIT"
+name = "sap0bombado/create-throttle"
+realm = "shared"
+registry = "https://github.com/UpliftGames/wally-index"
+version = "0.1.0"
+
+[dependencies]
